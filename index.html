@@ -1,0 +1,221 @@
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>Snake and Frog Game</title>  
+    <style>  
+        body {  
+            display: flex;  
+            flex-direction: column;  
+            align-items: center;  
+            background-color: black;  
+            font-family: Arial, sans-serif;  
+            color: white;  
+        }  
+
+        #gameCanvas {  
+            border: 2px solid white;  
+            background-color: black;  
+            margin: 20px;  
+        }  
+
+        #startGame {  
+            padding: 10px 20px;  
+            font-size: 18px;  
+            cursor: pointer;  
+            background-color: #4CAF50;  
+            color: white;  
+            border: none;  
+            border-radius: 5px;  
+            margin-bottom: 10px;  
+        }  
+
+        #score {  
+            font-size: 24px;  
+            margin: 10px;  
+            color: white;  
+        }  
+
+        #level {  
+            font-size: 24px;  
+            margin: 10px;  
+            color: white;  
+        }  
+
+        .container {  
+            text-align: center;  
+        }  
+    </style>  
+</head>  
+<body>  
+    <div class="container">  
+        <h1 style="color: white;">Snake and Frog Game</h1>  
+        <div id="score">Score: 0</div>  
+        <div id="level">Level: 1/20</div>  
+        <canvas id="gameCanvas" width="600" height="400"></canvas>  
+        <button id="startGame">Start Game</button>  
+    </div>  
+
+    <script>  
+        const canvas = document.getElementById('gameCanvas');  
+        const ctx = canvas.getContext('2d');  
+        const startGameBtn = document.getElementById('startGame');  
+        const scoreElement = document.getElementById('score');  
+        const levelElement = document.getElementById('level');  
+
+        let snake = [];  
+        let frog = {};  
+        let direction = 'right';  
+        let score = 0;  
+        let currentLevel = 1;  
+        let gameLoop;  
+        const initialSpeed = 300;  
+        let speed = initialSpeed;  
+
+        function initGame() {  
+            snake = [  
+                { x: 300, y: 200 },  
+                { x: 290, y: 200 },  
+                { x: 280, y: 200 }  
+            ];  
+            frog = {  
+                x: Math.random() * (canvas.width - 20),  
+                y: Math.random() * (canvas.height - 20)  
+            };  
+            direction = 'right';  
+            score = 0;  
+            currentLevel = 1;  
+            speed = initialSpeed;  
+            scoreElement.textContent = `Score: ${score}`;  
+            levelElement.textContent = `Level: ${currentLevel}/20`;  
+            if (gameLoop) clearInterval(gameLoop);  
+            gameLoop = setInterval(draw, speed);  
+            startGameBtn.style.display = 'none';  
+        }  
+
+        function draw() {  
+            // Clear canvas  
+            ctx.fillStyle = 'black';  
+            ctx.fillRect(0, 0, canvas.width, canvas.height);  
+
+            // Draw snake  
+            snake.forEach((segment, index) => {  
+                ctx.fillStyle = index === 0 ? '#00FF00' : '#32CD32';  
+                ctx.fillRect(segment.x, segment.y, 10, 10);  
+            });  
+
+            // Draw frog  
+            ctx.fillStyle = '#FF0000';  
+            ctx.fillRect(frog.x, frog.y, 10, 10);  
+
+            // Move frog  
+            frog.x += Math.random() * 4 - 2;  
+            frog.y += Math.random() * 4 - 2;  
+
+            // Keep frog inside canvas  
+            frog.x = Math.max(0, Math.min(frog.x, canvas.width - 10));  
+            frog.y = Math.max(0, Math.min(frog.y, canvas.height - 10));  
+
+            // Move snake  
+            const head = { ...snake[0] };  
+            switch (direction) {  
+                case 'up':  
+                    head.y -= 10;  
+                    break;  
+                case 'down':  
+                    head.y += 10;  
+                    break;  
+                case 'left':  
+                    head.x -= 10;  
+                    break;  
+                case 'right':  
+                    head.x += 10;  
+                    break;  
+            }  
+
+            // Check collision with walls  
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {  
+                gameOver();  
+                return;  
+            }  
+
+            // Check collision with self  
+            for (let i = 0; i < snake.length; i++) {  
+                if (head.x === snake[i].x && head.y === snake[i].y) {  
+                    gameOver();  
+                    return;  
+                }  
+            }  
+
+            snake.unshift(head);  
+
+            // Check collision with frog  
+            if (head.x < frog.x + 10 &&  
+                head.x + 10 > frog.x &&  
+                head.y < frog.y + 10 &&  
+                head.y + 10 > frog.y) {  
+                // Snake eats frog  
+                score += 10 * currentLevel;  
+                scoreElement.textContent = `Score: ${score}`;  
+                
+                // Generate new frog position  
+                frog = {  
+                    x: Math.random() * (canvas.width - 20),  
+                    y: Math.random() * (canvas.height - 20)  
+                };  
+
+                // Level up if score reaches requirement (e.g., every 100 points per level)  
+                if (score >= 100 * currentLevel) {  
+                    levelUp();  
+                }  
+            } else {  
+                // Remove last segment if no collision  
+                snake.pop();  
+            }  
+        }  
+
+        function levelUp() {  
+            if (currentLevel < 20) {  
+                currentLevel++;  
+                levelElement.textContent = `Level: ${currentLevel}/20`;  
+                // Increase speed (decrease interval time)  
+                speed = Math.max(100, speed - 20);  
+                clearInterval(gameLoop);  
+                gameLoop = setInterval(draw, speed);  
+            } else {  
+                // Win the game  
+                clearInterval(gameLoop);  
+                alert(`Congratulations! You've completed all 20 levels!`);  
+                startGameBtn.style.display = 'block';  
+            }  
+        }  
+
+        function gameOver() {  
+            clearInterval(gameLoop);  
+            alert(`Game Over! Score: ${score}`);  
+            startGameBtn.style.display = 'block';  
+        }  
+
+        startGameBtn.addEventListener('click', initGame);  
+
+        // Keyboard controls  
+        document.addEventListener('keydown', (e) => {  
+            switch (e.key) {  
+                case 'ArrowUp':  
+                    if (direction !== 'down') direction = 'up';  
+                    break;  
+                case 'ArrowDown':  
+                    if (direction !== 'up') direction = 'down';  
+                    break;  
+                case 'ArrowLeft':  
+                    if (direction !== 'right') direction = 'left';  
+                    break;  
+                case 'ArrowRight':  
+                    if (direction !== 'left') direction = 'right';  
+                    break;  
+            }  
+        });  
+    </script>  
+</body>  
+</html>  
